@@ -1,0 +1,31 @@
+---
+- name: Allow in on wireguard secure interface
+  ufw:
+    rule: allow
+    interface: "{{ wg_interface }}"
+    direction: in
+
+- name: Allow out on wireguard secure interface
+  ufw:
+    rule: allow
+    interface: "{{ wg_interface }}"
+    direction: out
+
+- name: Allow wireguard forwarding
+  shell:
+    cmd: ufw route allow in on wg0 out on wg0
+
+# interface_in unknown by ansible v2.9?!
+#- name: Route with interface in and out
+#  ufw:
+#    rule: allow
+#    route: yes
+#    interface_in: wg0
+#    interface_out: wg0
+
+- name: Allow server udp port (wireguard)
+  ufw:
+    rule: allow
+    port: "{{ wg_listen_port }}"
+    proto: udp
+

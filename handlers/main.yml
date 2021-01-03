@@ -1,0 +1,11 @@
+---
+- name: restart wireguard
+  service:
+    name: "wg-quick@{{ wg_interface }}"
+    state: restarted
+
+- name: restart nfs
+  service:
+    name: "nfs-kernel-server.service"
+    state: restarted
+

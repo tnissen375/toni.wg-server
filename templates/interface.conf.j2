@@ -1,0 +1,12 @@
+[Interface]
+Address = {{ wg_server_ip }}/24
+PrivateKey = {{ key_files.results[0].stdout }}
+ListenPort = {{ wg_listen_port }}
+
+{% for host in groups[wg_clients] %}
+{% if hostvars[host]['wg_client_ip'] is defined and hostvars[host]['wg_client_public_key'] is defined %}
+[Peer]
+PublicKey = {{ hostvars[host]['wg_client_public_key'] }}
+AllowedIps = {{ hostvars[host]['wg_client_ip'] }}/32
+{% endif %}
+{% endfor %}

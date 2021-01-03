@@ -1,0 +1,86 @@
+---
+- name: Register server key file contents
+  command: "cat {{ wg_dir }}/{{ item }}"
+  register: key_files
+  loop:
+    - "{{ wg_interface|quote }}_privatekey"
+    - "{{ wg_interface|quote }}_publickey"
+
+#- debug: var=hostvars["lb.govac.de"]['wg_client_public_key']
+#- debug: msg="item.item={{item.item}}, item.stdout={{item.stdout}}, item.changed={{item.changed}}"
+#  with_items: "{{key_files.results}}"
+
+- name: Configure Server
+  notify: restart wireguard
+  template:
+    src: interface.conf.j2
+    dest: /etc/wireguard/{{ wg_interface }}.conf
+    mode: 0600
+
+- name: Enable and start WireGuard service
+  service:
+    name: "wg-quick@{{ wg_interface }}"
+    state: started
+    enabled: true
+
+- name: Enable group rights
+  replace:
+    dest: /etc/default/nfs-kernel-server
+    regexp: "{{ item.re }}"
+    replace: "{{ item.rep }}"
+    backup: true
+    mode: '0644'
+  with_items:
+    - { re: '^RPCMOUNTDOPTS', rep: '#RPCMOUNTDOPTS' }
+  notify:
+    - restart nfs
+
+- name: Configure NFS
+  template:
+    src: idmapd.conf.j2
+    dest: /etc/idmapd.conf
+    mode: 0600
+  notify: restart nfs
+
+- name: Update old line short hostname in hosts file
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ hostvars[item]['ansible_default_ipv4']['address'] }}"
+    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['inventory_hostname'] }}"
+    state: present
+  when: hostvars[item]['wg_ip'] is defined and hostvars[item]['ansible_default_ipv4']['address'] is defined
+  delegate_to: "{{ item }}"
+  loop:
+    "{{ groups['wg_clients'] + groups['wg_server'] }}"  
+
+- name: Add wirguard IPs to hosts
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      {% for host in groups['wg_clients'] %}
+      {% if hostvars[host]['wg_ip'] is defined %}
+      {{ hostvars[host]['wg_ip'] }} {{ hostvars[host]['inventory_hostname_short'] }}
+      {% endif %}
+      {% endfor %}
+      {% for host in groups['wg_server'] %}
+      {% if hostvars[host]['wg_ip'] is defined %}
+      {{ hostvars[host]['wg_ip'] }} {{ hostvars[host]['inventory_hostname_short'] }}
+      {% endif %}
+      {% endfor %}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+  when: hostvars[item]['wg_ip'] is defined
+  delegate_to: "{{ item }}"
+  loop:
+    "{{ groups.all }}"
+
+
+# - name: Ensure hosts are accessable throught wireguard / Hostname in hosts file
+#   lineinfile:
+#     dest: /etc/hosts
+#     line: "{{ hostvars[item]['wg_ip'] }} {{ hostvars[item]['inventory_hostname_short'] }}"
+#     state: present
+#     create: yes
+#   when: hostvars[item]['wg_ip'] is defined
+#   delegate_to: "{{ item }}"
+#   loop:
+#     "{{ groups.all }}"

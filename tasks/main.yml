@@ -1,0 +1,10 @@
+---
+- import_tasks: firewall.yml
+  when: configure_firewall|bool
+
+- import_tasks: setup.yml
+  when: mode  == "setup"
+
+- import_tasks: start.yml
+  when: mode == "start"
+

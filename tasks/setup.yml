@@ -1,0 +1,89 @@
+---
+- name: Determine the running kernel release
+  command: uname -r
+  register: kernel_release
+
+#- name: Add wireguard PPA
+#  apt_repository:
+#    repo: ppa:wireguard/wireguard
+
+- name: Install wireguard
+  apt:
+    name: 
+      - linux-headers-{{ kernel_release.stdout }}
+      - linux-headers-generic
+      - wireguard-dkms
+      - wireguard-tools
+      - wireguard
+
+- name: Ensure wireguard dir exists
+  file:
+    path: "{{ wg_dir }}"
+    state: directory
+
+- name: Check for private server key
+  stat:
+    path: "{{ wg_dir  }}/{{ wg_interface|quote }}_privatekey"
+  register: keys_file_check
+
+- name: generate private key
+  when: not wg_private_key | d()
+  shell:
+    cmd: |
+      wg genkey > {{ wg_dir|quote }}/{{ wg_interface|quote }}_privatekey
+      chmod 600 {{ wg_dir|quote }}/{{ wg_interface|quote }}_privatekey
+    creates: "{{ wg_dir|quote }}/{{ wg_interface|quote }}_privatekey"
+  args:
+    chdir: "{{ wg_dir }}"
+
+- name: generate public key
+  when: not wg_public_key | d()
+  shell:
+    cmd: |
+      wg pubkey < {{ wg_interface|quote }}_privatekey > {{ wg_interface|quote }}_publickey
+      chmod 600 {{ wg_dir|quote }}/{{ wg_interface|quote }}_publickey
+    creates: "{{ wg_dir|quote }}/{{ wg_interface|quote }}_publickey"
+  args:
+    chdir: "{{ wg_dir }}"
+
+- name: Register server key file contents
+  command: "cat {{ wg_dir }}/{{ item }}"
+  register: key_files
+  loop:
+    - "{{ wg_interface|quote }}_privatekey"
+    - "{{ wg_interface|quote }}_publickey"
+#- debug: var=key_files
+#- debug: msg="item.item={{item.item}}, item.stdout={{item.stdout}}, item.changed={{item.changed}}"
+#  with_items: "{{key_files.results}}"
+
+- name: register facts for use in client
+  set_fact:
+    wg_server_public_key: "{{ key_files.results[1].stdout }}"
+    wg_subnet: "{{ wg_subnet }}"
+    wg_server_ip: "{{ wg_server_ip }}"
+    wg_listen_port: "{{ wg_listen_port }}"
+    wg_server_inet_ip: "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}"
+    wg_ip: "{{ wg_server_ip }}"
+
+#todo: Permissions root folder
+- name: Ensure NFS dir exists
+  file:
+    path: "{{ nfs_server_dir }}"
+    state: directory
+    mode: 0777
+
+- name: Enable IPv4 forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    reload: yes
+
+#- name: Update /etc/hosts
+#  lineinfile:
+#    dest: /etc/hosts
+#    regexp: "^{{ hostvars[host]['wireguard_address'] | regex_replace('\\.','\\\\.') }} "
+#    line: "{{ hostvars[host]['wireguard_address'] }} {{ host }}"
+#  with_items: "{{ groups[wg_group] }}"
+#  loop_control:
+#    loop_var: host
+#  when: host != inventory_hostname and hostvars[host]['wireguard_address'] is defined
