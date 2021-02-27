@@ -1,6 +1,6 @@
 ---
 - import_tasks: firewall.yml
-  when: configure_firewall|bool
+  when: configure_firewall|bool and mode  == "setup"
 
 - import_tasks: setup.yml
   when: mode  == "setup"
