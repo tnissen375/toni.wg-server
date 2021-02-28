@@ -71,14 +71,14 @@ Example Playbook to create a Wiregurad network
 Example inventory hosts file
 ```yaml
 [wg_server]
-server.jidu.eu
+server.toni-media.com
 
 [wg_clients]
-bbb1.jidu.eu wg_client_ip=10.8.0.2
-bbb2.jidu.eu wg_client_ip=10.8.0.3
-front.jidu.eu wg_client_ip=10.8.0.4
-turn.jidu.eu wg_client_ip=10.8.0.5
-scalelite.jidu.eu wg_client_ip=10.8.0.6
+bbb1.toni-media.com wg_client_ip=10.8.0.2
+bbb2.toni-media.com wg_client_ip=10.8.0.3
+front.toni-media.com wg_client_ip=10.8.0.4
+turn.toni-media.com wg_client_ip=10.8.0.5
+scalelite.toni-media.com wg_client_ip=10.8.0.6
 ```
 
 License

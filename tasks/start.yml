@@ -6,7 +6,7 @@
     - "{{ wg_interface|quote }}_privatekey"
     - "{{ wg_interface|quote }}_publickey"
 
-#- debug: var=hostvars["lb.govac.de"]['wg_client_public_key']
+#- debug: var=hostvars["lb.toni-media.com"]['wg_client_public_key']
 #- debug: msg="item.item={{item.item}}, item.stdout={{item.stdout}}, item.changed={{item.changed}}"
 #  with_items: "{{key_files.results}}"
 
