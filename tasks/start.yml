@@ -23,7 +23,7 @@
     state: started
     enabled: true
 
-- name: Enable group rights
+- name: Disable NFS protocols <4
   replace:
     dest: /etc/default/nfs-kernel-server
     regexp: "{{ item.re }}"
@@ -31,9 +31,26 @@
     backup: true
     mode: '0644'
   with_items:
-    - { re: '^RPCMOUNTDOPTS', rep: '#RPCMOUNTDOPTS' }
+    - { re: '^RPCMOUNTDOPTS', rep: 'RPCMOUNTDOPTS="--manage-gids -N 2 -N 3"' }
   notify:
     - restart nfs
+
+- name: Disable NFS protocols <4
+  blockinfile:
+    path: "/etc/default/nfs-kernel-server"
+    insertafter: '^\s*RPCMOUNTDOPTS'
+    block: |
+        RPCNFSDOPTS="-N 2 -N 3"
+    marker: "# {mark} ANSIBLE MANAGED"
+
+- name: Disable NFS protocols <4
+  blockinfile:
+    path: "/etc/default/nfs-common"
+    insertafter: '^\s*NEED_GSSD'
+    block: |
+        NEED_STATD="no"
+        NEED_IDMAPD="yes"
+    marker: "# {mark} ANSIBLE MANAGED"
 
 - name: Configure NFS
   template:
