@@ -1,0 +1,4 @@
+---
+- name: register facts
+  set_fact:
+    wg_ip: "{{ wg_server_ip }}"
